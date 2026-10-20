@@ -1,0 +1,1 @@
+{"name":"ozyra-web-audit","version":"0.1.0","private":true,"type":"module","description":"Zero-LLM offline website audit evidence prototype; live capture deliberately disabled","license":"MIT","engines":{"node":">=22"},"scripts":{"test":"node --test","demo":"node src/cli.js demo"},"bin":{"ozyra-web-audit":"src/cli.js"}}

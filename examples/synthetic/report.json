@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": "0.1.0",
+  "synthetic": true,
+  "sourceHash": "27af38d5f6bb6c7d3bbdbad6c058519138a4ca651f19a267e7d52c9a5649a481",
+  "runId": "0334119c8c7b349567b8",
+  "capturedAt": "2026-01-01T00:00:00Z",
+  "costs": {
+    "modelCalls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0
+  },
+  "coverage": [
+    {
+      "url": "https://example.invalid/",
+      "status": "complete",
+      "viewports": [
+        390,
+        320,
+        1440
+      ],
+      "manualReview": "not_tested",
+      "fieldPerformance": "unknown",
+      "liveSecurity": "not_tested"
+    },
+    {
+      "url": "https://example.invalid/contact",
+      "status": "blocked",
+      "viewports": [],
+      "manualReview": "not_tested",
+      "fieldPerformance": "unknown",
+      "liveSecurity": "not_tested"
+    }
+  ],
+  "findings": [
+    {
+      "id": "2f0b95c6deaeb10d",
+      "rule": "layout.horizontal-overflow",
+      "dimension": "responsive",
+      "observed": "Document width exceeds viewport at 390px; task impact requires review",
+      "status": "needs_review",
+      "confidence": "synthetic evidence only",
+      "target": "",
+      "viewport": 390,
+      "evidence": [
+        {
+          "path": "source.json",
+          "pointer": "/pages/0/views/0"
+        }
+      ],
+      "affectedPages": [
+        "https://example.invalid/"
+      ]
+    },
+    {
+      "id": "98319094ab357e14",
+      "rule": "axe.image-alt",
+      "dimension": "accessibility",
+      "observed": "Supplied automated finding: image-alt; not a conformance determination",
+      "status": "needs_review",
+      "confidence": "synthetic evidence only",
+      "target": "#hero img",
+      "viewport": 390,
+      "evidence": [
+        {
+          "path": "source.json",
+          "pointer": "/pages/0/views/0/axeViolations/0"
+        }
+      ],
+      "affectedPages": [
+        "https://example.invalid/"
+      ]
+    },
+    {
+      "id": "d1181efeb4b6bc24",
+      "rule": "layout.horizontal-overflow",
+      "dimension": "responsive",
+      "observed": "Document width exceeds viewport at 320px; task impact requires review",
+      "status": "needs_review",
+      "confidence": "synthetic evidence only",
+      "target": "",
+      "viewport": 320,
+      "evidence": [
+        {
+          "path": "source.json",
+          "pointer": "/pages/0/views/1"
+        }
+      ],
+      "affectedPages": [
+        "https://example.invalid/"
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "url": "https://example.invalid/",
+      "kind": "synthetic lab values",
+      "samples": [],
+      "field": "unknown"
+    },
+    {
+      "url": "https://example.invalid/contact",
+      "kind": "synthetic lab values",
+      "samples": [],
+      "field": "unknown"
+    }
+  ],
+  "limitations": [
+    "Synthetic supplied evidence; no website visited or screenshot captured.",
+    "Automated accessibility findings do not establish WCAG conformance.",
+    "No holistic security or quality grade.",
+    "Lab values are not real-user experience; TBT is not INP."
+  ]
+}
