@@ -1,8 +1,30 @@
 # Ozyra Web Audit
 
-**Real controlled-site browser capture, with zero LLM calls. Public-target execution remains disabled.**
+**Isolated public-page capture through a bounded Unix-socket broker, with zero LLM calls.**
 
-A deterministic website-review prototype using Playwright, axe-core and Lighthouse. Version 0.2 actually serves owned test pages, captures screenshots, runs browser accessibility checks and Lighthouse measurements, and generates evidence-linked HTML/JSON. It is not an unrestricted scanner, accessibility certification service, security assessment or sales agent.
+A deterministic website-review prototype using Playwright, axe-core and Lighthouse. Version 0.3 captures operator-approved public pages from a disconnected browser container. It also serves owned test pages for reproducible regression checks. Both modes produce screenshots, browser accessibility checks, Lighthouse diagnostics and evidence-linked HTML/JSON. It is not an unrestricted scanner, accessibility certification service, security assessment or sales agent.
+
+## Audit approved public pages (verified Linux Docker runner)
+
+Use a Linux host with an already installed/running Docker runtime and Node.js 22.19+. The existing hosted Ubuntu 24.04 CI runner is verified. No daemon is started or host networking changed by these commands. Docker Desktop on macOS is not supported by this Unix-socket host/container transport.
+
+```sh
+npm ci --ignore-scripts --no-fund
+docker build -f runner/Dockerfile -t ozyra-isolation-proof .
+node src/cli.js audit --manifest /private/approved-pages.json --out /private/audit-output
+```
+
+The operator-supplied manifest is small and explicit:
+
+```json
+{"version":1,"pages":["https://example.com/"]}
+```
+
+At most three same-origin pages; no credentials, URL queries, private addresses or nonstandard ports. Put real manifests and reports outside Git. `--fresh` recaptures; otherwise matching image/source/manifest inputs reuse checksum-verified artifacts with their original timestamps. The first run never requires an LLM. A fresh run checks robots and public DNS before approved page requests.
+
+The host broker owns policy and budgets. The non-root Chromium/controller container has network-none, zero outer capabilities, no-new-privileges, a read-only root filesystem and its own sandbox. It can ask for resources only through the temporary Unix socket. Only selected pages and static same-origin resources discovered in delivered HTML/CSS are accepted. Unlisted/dynamic API paths, cross-origin assets, mutations, credentials, cookies, websockets and off-scope redirects are refused. Blocked resources can make a capture partial; they are not automatically defects in the site.
+
+Outputs: actual PNGs, axe results, selected headers, brokered Lighthouse diagnostics, JSON, HTML and checksum manifest. There is no crawling, contact, form submission, publishing or model integration. No reports are uploaded by the tool.
 
 ## Run the real controlled demonstration
 
@@ -35,20 +57,20 @@ Browser tests run serially with the Chromium sandbox enabled. If the execution e
 
 The intentionally defective owned page has missing image alt text, an unlabelled input and mobile overflow. The clean fixture provides a non-failure comparison. These are **real measurements of synthetic content**, not invented observation JSON or prospect findings.
 
-Performance is measured through a request broker on a local fixture with provided (unthrottled) conditions. One run is provisional and cannot represent public-site latency or field experience. TBT is not INP. Automated accessibility results are not WCAG conformance. No holistic quality/security score or sales outcome is asserted.
+Performance is measured through a request broker with provided (unthrottled) conditions. One run is provisional and cannot represent public-site latency or field experience. TBT is not INP. Automated accessibility results are not WCAG conformance. No holistic quality/security score or sales outcome is asserted.
 
 ## Request boundaries
 
 The browser has an ephemeral profile, sandbox, no downloads or service workers, and a deny-all fallback proxy. Approved requests are fulfilled by a Node broker that checks origin/method, validates all DNS answers, pins the connection IP, checks each new request, refuses out-of-scope redirects, and enforces time/request/byte limits. Only the internally created owned fixture receives a narrow loopback exception; callers cannot invent that capability. Credentials and cookies are not forwarded. Websockets and mutations are blocked. Robots disallow, 403/429 and recognized challenge/login responses stop or block capture honestly.
 
-The application controls are tested. A separate network-none container proof now also passes on hosted Ubuntu 22.04/24.04 with Chromium sandboxing enabled and zero outer capabilities. CAPTCHA/login detection remains heuristic. Public-target execution stays fail-closed until the isolated container has a guarded Unix-socket transport and controlled external HTTPS/DNS tests:
+The network-none container proof passes on hosted Ubuntu 22.04/24.04. The Unix-socket integration passes real external owned HTTP/HTTPS capture, DNS-rebinding rejection and TLS-hostname verification tests. CAPTCHA/login detection remains heuristic. The direct URL shortcut remains disabled; only the manifest-based isolated command above is supported:
 
 ```sh
 node src/cli.js audit https://example.com
-# LIVE_DISABLED, before any target access
+# DIRECT_LIVE_DISABLED, before any target access
 ```
 
-See [remaining activation gate](docs/live-capture-gate.md). No user-selectable private-target bypass exists.
+See [verified boundary and limitations](docs/live-capture-gate.md). No user-selectable private-target bypass exists.
 
 ## Lightweight offline mode
 
@@ -59,7 +81,7 @@ node src/cli.js demo --out /tmp/ozyra-synthetic-demo
 node src/cli.js analyze --input fixtures/demo.json --out /tmp/ozyra-synthetic-demo
 ```
 
-Its schemaVersion 1 output is labelled synthetic supplied observations. The real collector uses schemaVersion 2 and `kind: controlled-browser-measurement`. Do not confuse the two. `examples/synthetic/` is the old offline sample, not a screenshot.
+Its schemaVersion 1 output is labelled synthetic supplied observations. The real collector uses schemaVersion 2 and a measurement kind identifying controlled or public capture. Do not confuse the two. `examples/synthetic/` is the old offline sample, not a screenshot.
 
 ## Private outputs and public code
 
@@ -67,4 +89,4 @@ Output paths inside this repository, including symlink aliases, are rejected. Pu
 
 [Methodology/funnel](docs/methodology.md) · [provenance](docs/provenance.md) · [dependency notices](THIRD_PARTY_NOTICES.md) · [license inventory](docs/dependency-licenses.json).
 
-[Concrete existing-runner inspection, proof and next transport architecture](docs/isolated-runner.md).
+[Verified runner architecture](docs/isolated-runner.md) · [Release verification evidence](docs/verification.md).

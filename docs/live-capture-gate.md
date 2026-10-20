@@ -1,26 +1,31 @@
-# Public-target activation gate
+# Verified public-capture boundary and limits
 
-Version 0.2: **controlled owned-site capture works; arbitrary public targets remain disabled**.
+Version 0.3 exposes only manifest-based isolated auditing. The raw/direct browser URL path is still disabled.
 
-## Implemented and tested
+## Passed before activation
 
-- Playwright with Chromium sandbox explicitly enabled, ephemeral profile and minimal environment; service workers/downloads disabled.
-- Deny-all browser fallback proxy, including loopback bypass suppression, with browser verification that an unhandled request cannot reach the fixture server.
-- Broker origin/method checks, all-answer public-IP validation, pinned connection addresses, per-request resolution, bounded DNS, TLS verification and no automatic redirects.
-- Reject metadata/private/reserved/mapped addresses and off-origin redirect/subresource requests. The only loopback capability comes from the internally owned server and is not a CLI switch.
-- Robots restrictions, 403/429 and recognized login/CAPTCHA bodies; mutations/websockets refused. Detection patterns are heuristic, not exhaustive.
-- Request, per-response, aggregate byte and time budgets. Site stops on access challenges or exhausted budgets; incomplete captures never claim success.
-- Real screenshots, axe findings and Lighthouse snapshot/navigation artifacts on controlled pages.
+- Network-none browser/controller containers on hosted Ubuntu 22.04/24.04: non-root, zero effective capabilities, no-new-privileges, unreachable external IPv4/IPv6 TCP and UDP/DNS, and successful sandboxed browser/axe/Lighthouse capture. Evidence: https://github.com/ibrahimshiyam/ozyra-web-audit/actions/runs/39495555062 .
+- Actual Unix-socket bridge to owned HTTP and HTTPS servers outside the browser namespace. Full HTTPS capture includes six screenshots and actual Lighthouse output.
+- Server-enforced resource discovery, mutation and private-resource rejection, off-origin redirects, robots restrictions, request/byte/time caps, actual controlled UDP DNS rebinding, and TLS hostname mismatch rejection. Evidence: https://github.com/ibrahimshiyam/ozyra-web-audit/actions/runs/39497345296 .
+- The broker owns budgets/policy; callers cannot supply overrides. Only internally owned fixtures get a narrow private address capability. TLS is never disabled. The socket permits fetch/manifest/stats, not CONNECT, arbitrary sockets, files or commands.
 
-## Still required before enabling public targets
+- The bounded public demonstration and cache replay passed on the same runtime after re-running all controlled integration checks. See [exact verification evidence](verification.md).
 
-1. Connect the verified network-none browser container to a narrow Unix-socket request broker. The container boundary and sandboxed controlled capture now pass on standard hosted Ubuntu 22.04/24.04; see isolated-runner.md. No public transport bridge exists yet, so no arbitrary target execution is enabled.
-2. Approved same-origin URL manifest and real-site robots/terms workflow, with explicit redirect rules and conservative subresource handling. No indiscriminate crawl or public private-address override.
-3. Additional browser/worker/protocol cases and controlled DNS-to-connect integration tests in that runner. Current DNS pinning/rebinding tests use a mocked transport; browser tests exercise real HTTP on the owned loopback server, not public HTTPS rebinding.
-4. Measurement calibration for brokered transfer timing, optional cold-browser repeated Lighthouse runs, and manual review of real rendering effects. Broker fulfillment changes network timing; do not present it as normal visitor performance.
-5. Manual keyboard/focus, reflow, content and task checks. The tool cannot certify WCAG conformance or usability.
-6. Retention/access policy for real dossiers and a reviewed recipient/send process before any outreach. No prospect outreach functionality exists.
+## Public run contract
 
-Defaults: at most three pages, 390x844/320x800/1440x900, one page at a time, five-second navigation delay, 45-second request timeout, eight-minute overall browser deadline, 120 broker requests, 8 MiB per response and 32 MiB aggregate. Tests use shorter limits only against owned fixtures. Page subresources count toward limits.
+Operator supplies 1–3 public same-origin HTTP(S) URLs, standard ports, without credentials/queries. No recursive discovery. The broker honors robots, sends an identifying user agent, validates every DNS answer and pins a validated connection address. It serializes requests, enforces >=5 seconds between selected-page loads, and never follows a redirect internally. Redirect scope is checked before returning a response.
 
-Smallest next step: implement the Unix-socket broker on the already verified standard hosted Ubuntu 24.04 runner and test owned HTTP/HTTPS/DNS scenarios outside the browser namespace. Then consider one operator-approved public own-site smoke. Runner selection is no longer an unresolved user choice. No public service or VPS configuration was changed.
+Browser/controller are isolated from IP networking; the only external-resource route is the temporary Unix socket. Browser sandbox is enabled, service workers/downloads are disabled, and only bounded output and socket directories are mounted. Runtime parameters are fixed in src/isolated-runner.js. No host security setting, Docker socket, host network, SYS_ADMIN, persistent credential or remote service is used.
+
+Defaults: 120 broker requests, 8 MiB per response, 32 MiB aggregate, 45 seconds/request, eight-minute capture deadline, 500 protocol calls and 500 discovered resource URLs. The operator command adds a ten-minute container-process deadline. Budget exhaustion returns blocked/partial evidence. Production callers cannot raise limits through the socket.
+
+## Practical limitations
+
+- Conservative static discovery supports same-origin src/link references and CSS URLs/imports. Dynamic API calls, srcset-only resources, module-generated requests and cross-origin CDN assets can be blocked. The report exposes partial coverage. Do not label policy-induced missing resources as website defects.
+- Only identity transfer encoding is accepted; unexpected compressed responses are explicitly refused. Cookies/authentication are not forwarded or persisted.
+- CAPTCHA/login detection is heuristic. Access denial/429/challenge responses stop the site; no evasion/retry campaign.
+- Broker fulfillment changes browser network timing. Lighthouse numbers are brokered diagnostics, not canonical visitor-performance scores, field data or Maldives-specific measurements. Use an approved representative performance environment before making client-facing speed claims.
+- Manual keyboard/focus, reflow, useful alt text, task completion and accessibility conformance remain outside automation. No security assurance/grade or sales outcome is asserted.
+- This is a verified constrained implementation, not a claim of immunity to browser/kernel vulnerabilities. Recheck the boundary after changing runtime/image/profile/dependencies.
+- Linux Docker is supported. macOS Docker Desktop's host Unix-socket transport is not supported by this launcher. No local daemon is auto-started.
+- Real prospect evidence stays private. Public CI demonstrates owned fixtures; the separately dispatched public smoke is fixed to a documentation domain and uploads no captures.

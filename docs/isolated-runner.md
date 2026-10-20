@@ -1,4 +1,4 @@
-# Concrete isolated runner plan
+# Verified isolated runner
 
 ## Existing options inspected, 2026-10-20
 
@@ -10,7 +10,7 @@
 
 Both Ubuntu 22.04 and 24.04 passed the complete isolation + sandboxed screenshot/axe/Lighthouse evidence proof: https://github.com/ibrahimshiyam/ozyra-web-audit/actions/runs/39495555062 . Tested runtime commit: 106c200. Jobs completed in 1m38s and 1m40s. The previous failures are preserved as evidence; the final configuration does not weaken host security or grant capabilities.
 
-The runner choice is resolved: use the existing standard Ubuntu 24.04 hosted runner for the next controlled integration stage. No new runtime or host-security approval is needed for this proven configuration. Public target mode remains disabled until the bridge and controlled external HTTPS/DNS cases below pass.
+The runner choice is resolved: use the existing standard Ubuntu 24.04 hosted runner. No new runtime or host-security approval is needed for this proven configuration. The network proof was followed by the passing bridge/external HTTPS/DNS cases recorded below; version 0.3 now enables only the isolated manifest command.
 
 ## Selected minimum boundary
 
@@ -20,7 +20,7 @@ Docker's network-none driver gives the container only loopback. The proof assert
 
 The default container seccomp profile could not launch the sandbox. The version-pinned Playwright profile enabled namespace creation but its capability-conditioned chroot rule still blocked Chromium. The documented local adjustment allows that syscall while retaining zero outer capabilities and kernel permission checks. No host AppArmor/sysctl/firewall/security service is changed. Provenance/license are in runner/PROVENANCE.md.
 
-## Minimal public-site architecture: next implementation
+## Implemented public-site architecture
 
 Network-none cannot fetch a public page on its own. Keep it that way:
 
@@ -28,9 +28,9 @@ Network-none cannot fetch a public page on its own. Keep it that way:
 2. Expose only a temporary Unix-domain socket to the capture controller. No IP listener, CONNECT tunnel, arbitrary socket operation, shell endpoint or file API. The socket directory is isolated per run and removed at exit. A read-only socket mount does not itself constrain API operations; the broker must enforce its narrow protocol.
 3. Move the current guarded fetch implementation behind that socket. Enforce origin/path scope, robots, GET/HEAD, DNS-all-answer validation, pinned connections/TLS hostname checks, each redirect, rate/time/request/byte limits and redaction on the broker side. The client cannot increase budgets or grant private-address exceptions.
 4. Controller requests approved resources over the socket and fulfills Playwright routes. The Chromium process remains without external network access even if a browser API bypasses Playwright interception. Only the broker can contact an approved public site.
-5. Prove the separation against owned HTTP/HTTPS fixtures outside the browser container: allowed render succeeds via broker, direct traffic remains unreachable, off-origin/private/rebinding/redirect/mutation attempts fail, and every timeout returns partial/blocked evidence. Then one explicitly approved own-site public smoke can be considered.
+5. Prove the separation against owned HTTP/HTTPS fixtures outside the browser container: allowed render succeeds via broker, direct traffic remains unreachable, off-origin/private/rebinding/redirect/mutation attempts fail, and every timeout returns partial/blocked evidence. The separately approved public demonstration smoke follows only after these checks pass.
 
-The Unix-socket bridge and controlled external HTTPS/DNS integration tests are still implementation work. This document does not enable public targets or assert that the production boundary is complete.
+The Unix-socket bridge and controlled external HTTPS/DNS integration are implemented and tested in version 0.3. The direct browser URL shortcut stays disabled; only the manifest-based isolated command is enabled. These tests do not imply immunity to browser/kernel vulnerabilities.
 
 ## Permissions, costs and dependencies
 
@@ -39,3 +39,7 @@ Current fixture proof: existing repository code/CI authorization only, `contents
 Dependencies: official Playwright test image plus locked npm dependencies already reviewed. Image download and script-only npm installation happen on ephemeral hosted CI, not the user's Mac or VPS. User-controlled real prospect reports must not become public CI logs/artifacts; a private operator environment is a separate deployment decision after the implementation is verified.
 
 Sources: https://docs.docker.com/engine/network/drivers/none/ ; https://playwright.dev/docs/docker ; https://docs.github.com/en/billing/concepts/product-billing/github-actions .
+
+## Version 0.3 completion
+
+The Unix-socket bridge described above is now implemented in src/socket-broker.js and src/isolated-runner.js. Controlled external HTTP/HTTPS/DNS integration passed at runtime commit 06d84ad: https://github.com/ibrahimshiyam/ozyra-web-audit/actions/runs/39497345296 . The manifest-based Linux Docker command is enabled after that proof; the direct URL shortcut remains disabled. Public smoke is a separate manual workflow which re-runs controlled integration before contacting its fixed documentation-domain page. See live-capture-gate.md for supported scope and limits; the earlier next-step list is design history, not outstanding work.

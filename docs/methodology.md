@@ -1,6 +1,6 @@
 # Methodology and private workflow
 
-Version 0.2 implements real browser capture on internally owned fixtures, plus the original offline report core. Public-site activation and the business workflow below remain planned; no prospect research or outreach has been performed.
+Version 0.3 supports bounded manifest-based public capture through the isolated Unix-socket broker, plus controlled fixtures and offline report analysis. The business workflow below remains a proposed process; no prospect research or outreach has been performed.
 
 ## Evidence contract
 

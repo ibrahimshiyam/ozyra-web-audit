@@ -1,6 +1,6 @@
 # Third-party notices
 
-Version 0.2 installs pinned packages from npm; it does not vendor their source or redistribute Chrome binaries. Preserve each installed package's licenses/notices. Exact transitive versions, integrity values and source registry URLs are in package-lock.json; declared licenses for all 117 resolved packages are recorded in docs/dependency-licenses.json. No unknown license declarations were found in that inventory.
+Version 0.3 installs pinned packages from npm; it does not vendor their source or redistribute Chrome binaries. Preserve each installed package's licenses/notices. Exact transitive versions, integrity values and source registry URLs are in package-lock.json; declared licenses for all 124 resolved packages are recorded in docs/dependency-licenses.json. No unknown license declarations were found in that inventory.
 
 Direct dependencies:
 
