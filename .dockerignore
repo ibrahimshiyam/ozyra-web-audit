@@ -1,0 +1,11 @@
+**
+!package.json
+!package-lock.json
+!src/
+!src/**
+!scripts/
+!scripts/**
+!fixtures/
+!fixtures/**
+!runner/
+!runner/Dockerfile
