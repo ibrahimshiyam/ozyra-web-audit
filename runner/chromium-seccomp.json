@@ -50,6 +50,14 @@
 		}
 	],
 	"syscalls": [
+    {
+      "comment": "Permit Chromium chroot inside its user namespace; outer capabilities remain dropped and kernel checks apply.",
+      "names": ["chroot"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [],
+      "includes": {},
+      "excludes": {}
+    },
 		{
 			"comment": "Allow create user namespaces",
 			"names": [
