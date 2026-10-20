@@ -14,7 +14,7 @@ Version 0.2: **controlled owned-site capture works; arbitrary public targets rem
 
 ## Still required before enabling public targets
 
-1. A validated OS/container-level egress boundary for the browser. The deny proxy, Chromium switches and interception are defense in depth, not an independently verified complete boundary for all browser channels/processes. This prototype does not configure a firewall, disable security controls or claim total network confinement.
+1. Connect the verified network-none browser container to a narrow Unix-socket request broker. The container boundary and sandboxed controlled capture now pass on standard hosted Ubuntu 22.04/24.04; see isolated-runner.md. No public transport bridge exists yet, so no arbitrary target execution is enabled.
 2. Approved same-origin URL manifest and real-site robots/terms workflow, with explicit redirect rules and conservative subresource handling. No indiscriminate crawl or public private-address override.
 3. Additional browser/worker/protocol cases and controlled DNS-to-connect integration tests in that runner. Current DNS pinning/rebinding tests use a mocked transport; browser tests exercise real HTTP on the owned loopback server, not public HTTPS rebinding.
 4. Measurement calibration for brokered transfer timing, optional cold-browser repeated Lighthouse runs, and manual review of real rendering effects. Broker fulfillment changes network timing; do not present it as normal visitor performance.
@@ -23,4 +23,4 @@ Version 0.2: **controlled owned-site capture works; arbitrary public targets rem
 
 Defaults: at most three pages, 390x844/320x800/1440x900, one page at a time, five-second navigation delay, 45-second request timeout, eight-minute overall browser deadline, 120 broker requests, 8 MiB per response and 32 MiB aggregate. Tests use shorter limits only against owned fixtures. Page subresources count toward limits.
 
-Smallest next step: choose an approved isolated runner with enforceable egress restrictions, validate its network boundary using controlled HTTP/HTTPS/DNS cases, then enable a single operator-approved public own-site smoke. No public service or VPS configuration was changed in this release.
+Smallest next step: implement the Unix-socket broker on the already verified standard hosted Ubuntu 24.04 runner and test owned HTTP/HTTPS/DNS scenarios outside the browser namespace. Then consider one operator-approved public own-site smoke. Runner selection is no longer an unresolved user choice. No public service or VPS configuration was changed.

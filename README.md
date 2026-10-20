@@ -41,7 +41,7 @@ Performance is measured through a request broker on a local fixture with provide
 
 The browser has an ephemeral profile, sandbox, no downloads or service workers, and a deny-all fallback proxy. Approved requests are fulfilled by a Node broker that checks origin/method, validates all DNS answers, pins the connection IP, checks each new request, refuses out-of-scope redirects, and enforces time/request/byte limits. Only the internally created owned fixture receives a narrow loopback exception; callers cannot invent that capability. Credentials and cookies are not forwarded. Websockets and mutations are blocked. Robots disallow, 403/429 and recognized challenge/login responses stop or block capture honestly.
 
-These application controls are tested; they are **not an independently verified OS-wide egress boundary**. CAPTCHA/login detection is heuristic. Public-target execution remains fail-closed while that production boundary and arbitrary-site behavior are unresolved:
+The application controls are tested. A separate network-none container proof now also passes on hosted Ubuntu 22.04/24.04 with Chromium sandboxing enabled and zero outer capabilities. CAPTCHA/login detection remains heuristic. Public-target execution stays fail-closed until the isolated container has a guarded Unix-socket transport and controlled external HTTPS/DNS tests:
 
 ```sh
 node src/cli.js audit https://example.com
@@ -66,3 +66,5 @@ Its schemaVersion 1 output is labelled synthetic supplied observations. The real
 Output paths inside this repository, including symlink aliases, are rejected. Public examples must be explicitly reviewed owned/synthetic content. Real prospect dossiers, screenshots, contacts and raw responses must remain outside Git; ignore rules alone do not sanitize data. This release has no LLM adapter, credentials, outreach, CRM or commercial commitments.
 
 [Methodology/funnel](docs/methodology.md) · [provenance](docs/provenance.md) · [dependency notices](THIRD_PARTY_NOTICES.md) · [license inventory](docs/dependency-licenses.json).
+
+[Concrete existing-runner inspection, proof and next transport architecture](docs/isolated-runner.md).

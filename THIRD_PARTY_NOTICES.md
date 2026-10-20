@@ -16,3 +16,5 @@ Direct dependencies:
 The axe-core dependency is MPL-2.0 with additional bundled-component notices. Its source is unmodified and installed through npm; users can obtain corresponding package source through the pinned registry source and upstream repository. Any future modified or bundled distribution must preserve notices and satisfy its file-level source obligations. Inspect installed axe-core/LICENSE and package contents before redistribution.
 
 Transitive license expressions include MIT, Apache-2.0, MPL-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD and (MIT OR CC0-1.0). This inventory is a provenance aid, not a substitute for reviewing a changed distribution. Node.js and Chrome are installed separately and are not redistributed here. Documentation links do not imply affiliation or endorsement.
+
+Runner additions: the derived Microsoft Playwright seccomp profile is distributed under Apache-2.0 with its full license and modification provenance in runner/. The official testing container image is digest pinned and consumed on ephemeral CI; its browser binaries are not redistributed in this repository.
