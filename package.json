@@ -1,9 +1,9 @@
 {
   "name": "ozyra-web-audit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Deterministic controlled-site browser audit with screenshots, axe and Lighthouse; public targets disabled",
+  "description": "Deterministic isolated public-page auditing through a bounded Unix-socket broker",
   "license": "MIT",
   "engines": {
     "node": ">=22.19"

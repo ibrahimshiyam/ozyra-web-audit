@@ -1,0 +1,21 @@
+name: Approved public demonstration smoke
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guarded-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-fund
+      - run: node --test test/audit.test.js test/network.test.js test/socket.test.js
+      - run: docker build -f runner/Dockerfile -t ozyra-isolation-proof .
+      - name: Reprove boundary and controlled integration before public access
+        run: node scripts/bridge-integration.js
+      - name: One fixed public demonstration page, no prospect data or artifact uploads
+        run: node scripts/public-smoke.js

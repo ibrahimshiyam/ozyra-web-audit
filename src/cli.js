@@ -13,7 +13,11 @@ export async function run(args) {
    const {controlled}=await import('./controlled.js');
    console.log(JSON.stringify(await controlled(rest[1],{fresh:rest[2]==='--fresh'}))); return;
  }
- if(command==='audit') requireLiveCapture();
+ if(command==='audit') {
+   if(rest[0]!=='--manifest'||!rest[1]||rest[2]!=='--out'||!rest[3]||(rest.length>4&&(rest.length!==5||rest[4]!=='--fresh')))requireLiveCapture();
+   const {auditIsolated}=await import('../scripts/audit-isolated.js');
+   console.log(JSON.stringify(await auditIsolated({manifestPath:rest[1],out:rest[3],fresh:rest[4]==='--fresh'})));return;
+ }
  if(!['demo','analyze'].includes(command)) { console.log('Usage: node src/cli.js demo --out /outside/repo/path\n       node src/cli.js analyze --input fixture.json --out /outside/repo/path\nLive audit disabled. Synthetic evidence only. No LLM or network.'); return; }
  const options={};
  for(let i=0;i<rest.length;i+=2){ if(!['--input','--out'].includes(rest[i]) || !rest[i+1]) throw new Error('Unknown or incomplete option'); options[rest[i]]=rest[i+1]; }

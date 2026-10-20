@@ -1,6 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import dns from 'node:dns/promises';
+import {isIP} from 'node:net';
 import ipaddr from 'ipaddr.js';
 import {isOwnedFixture} from './controlled-fixture.js';
 
@@ -49,8 +50,8 @@ export async function brokerFetch(raw, { origin, method = 'GET', budget = new Bu
   return new Promise((resolve, reject) => {
     const req = send({ protocol: url.protocol, hostname: address.address, family: address.family,
       port: url.port || (url.protocol === 'https:' ? 443 : 80), path: url.pathname + url.search,
-      servername: url.hostname, rejectUnauthorized: true, ca:isOwnedFixture(fixture)?fixture.ca:undefined, method, agent: false,
-      headers: { host: url.host, 'user-agent': userAgent, accept: '*/*' } }, res => {
+      servername: isIP(url.hostname.replace(/^\[|\]$/g,''))?undefined:url.hostname, rejectUnauthorized: true, ca:isOwnedFixture(fixture)?fixture.ca:undefined, method, agent: false,
+      headers: { host: url.host, 'user-agent': userAgent, accept: '*/*', 'accept-encoding':'identity' } }, res => {
       const chunks = []; let bytes = 0;
       res.on('data', chunk => {
         bytes += chunk.length;
@@ -60,6 +61,7 @@ export async function brokerFetch(raw, { origin, method = 'GET', budget = new Bu
       res.on('error', reject);
       res.on('end', () => {
         const status = res.statusCode;
+        if(res.headers['content-encoding']&&res.headers['content-encoding']!=='identity'){reject(new Error('UNSUPPORTED_CONTENT_ENCODING'));return;}
         if ([401,403,429].includes(status)) { reject(new Error(`ACCESS_STOP_${status}`)); return; }
         // Do not persist cookies, credential headers or arbitrary response metadata.
         const headers = {};

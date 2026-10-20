@@ -8,5 +8,5 @@ export function publicUrl(value) {
   return u.href;
 }
 export function requireLiveCapture() {
-  throw new Error('LIVE_DISABLED: DNS, redirect, subresource, robots and mutation guards are not yet verified. This release makes no network requests. Use demo or analyze with synthetic evidence.');
+  throw new Error('DIRECT_LIVE_DISABLED: use audit --manifest private.json --out /private/output on the verified Linux Docker runner. Direct browser networking is never enabled.');
 }

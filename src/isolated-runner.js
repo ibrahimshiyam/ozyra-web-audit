@@ -1,6 +1,7 @@
 import {spawn} from 'node:child_process';
 import {resolve} from 'node:path';
 export async function runIsolated({socketDirectory,output,image='ozyra-isolation-proof',short=false}){
+ if([socketDirectory,output].some(p=>/[\r\n,]/.test(p)))throw new Error('UNSAFE_MOUNT_PATH');
  if(process.platform!=='linux')throw new Error('LINUX_DOCKER_RUNNER_REQUIRED');
  const profile=resolve(new URL('../runner/chromium-seccomp.json',import.meta.url).pathname);
  const args=['run','--rm','--init','--network','none','--user',`${process.getuid()}:${process.getgid()}`,'--cap-drop','ALL','--security-opt','no-new-privileges','--security-opt',`seccomp=${profile}`,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,size=512m','--shm-size','256m','--memory','2g','--cpus','2','--pids-limit','256','--mount',`type=bind,src=${socketDirectory},dst=/broker,readonly`,'--mount',`type=bind,src=${output},dst=/out`];
