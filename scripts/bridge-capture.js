@@ -1,0 +1,12 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {captureBroker} from '../src/capture.js';
+import {renderCaptured} from '../src/captured-report.js';
+import {hash} from '../src/engine.js';
+const directory='/out/bundle';
+await mkdir(directory,{recursive:true,mode:0o700});
+const options=process.env.OZYRA_TEST_SHORT==='1'?{viewports:[{width:390,height:844}],lighthouse:false}:{};
+const {report,artifacts}=await captureBroker('/broker/requests.sock',directory,options);
+const html=renderCaptured(report);await writeFile(join(directory,'report.html'),html,{mode:0o600});artifacts['report.html']=hash(html);
+await writeFile(join(directory,'manifest.json'),JSON.stringify({key:hash(report),kind:report.kind,artifacts},null,2),{mode:0o600});
+console.log(JSON.stringify({kind:report.kind,pageCount:report.pages.length,statuses:report.pages.map(p=>p.status),screenshots:report.pages.reduce((n,p)=>n+p.views.filter(v=>v.screenshot).length,0),lighthouse:report.lighthouse.status,requests:report.network.requests,bytes:report.network.bytes,modelCalls:0}));

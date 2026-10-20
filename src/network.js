@@ -30,21 +30,27 @@ export class Budget {
   chunk(n, responseBytes) { this.check(); this.bytes += n; if (this.bytes > this.limits.bytes || responseBytes > this.limits.responseBytes) throw new Error('BYTE_BUDGET'); }
 }
 /** Broker pins the validated IP on each request. It never follows redirects itself. */
-export async function brokerFetch(raw, { origin, method = 'GET', budget = new Budget(), fixture, resolver = dns.lookup, transport } = {}) {
+export async function brokerFetch(raw, { origin, method = 'GET', budget = new Budget(), fixture, resolver = dns.lookup, transport, userAgent = 'OzyraWebAudit/0.2 controlled-fixture prototype' } = {}) {
   const url = checkedURL(raw, origin);
   if (!['GET', 'HEAD'].includes(method)) throw new Error('MUTATION_BLOCKED');
   budget.request();
   let dnsTimer;
-  const address = isOwnedFixture(fixture) && fixture.origin === origin && fixture.address === '127.0.0.1'
-    ? { address: '127.0.0.1', family: 4 }
-    : await Promise.race([resolvePublic(url.hostname, resolver),new Promise((_,reject)=>{dnsTimer=setTimeout(()=>reject(new Error('DNS_TIME_BUDGET')),Math.max(1,Math.min(budget.limits.requestMs,budget.limits.deadlineMs-(Date.now()-budget.started))));})]).finally(()=>clearTimeout(dnsTimer));
+  const resolveAddress=async()=>{
+    if(isOwnedFixture(fixture)&&fixture.origin===origin&&fixture.address==='127.0.0.1'){
+      const records=fixture.resolver?await fixture.resolver(url.hostname,{all:true}):[{address:'127.0.0.1',family:4}];
+      if(!records.length||records.some(r=>r.address!=='127.0.0.1'))throw new Error('PRIVATE_ADDRESS');
+      return records[0];
+    }
+    return resolvePublic(url.hostname,resolver);
+  };
+  const address=await Promise.race([resolveAddress(),new Promise((_,reject)=>{dnsTimer=setTimeout(()=>reject(new Error('DNS_TIME_BUDGET')),Math.max(1,Math.min(budget.limits.requestMs,budget.limits.deadlineMs-(Date.now()-budget.started))));})]).finally(()=>clearTimeout(dnsTimer));
   budget.check();
   const send = transport ?? (url.protocol === 'https:' ? https.request : http.request);
   return new Promise((resolve, reject) => {
     const req = send({ protocol: url.protocol, hostname: address.address, family: address.family,
       port: url.port || (url.protocol === 'https:' ? 443 : 80), path: url.pathname + url.search,
-      servername: url.hostname, rejectUnauthorized: true, method, agent: false,
-      headers: { host: url.host, 'user-agent': 'OzyraWebAudit/0.2 controlled-fixture prototype', accept: '*/*' } }, res => {
+      servername: url.hostname, rejectUnauthorized: true, ca:isOwnedFixture(fixture)?fixture.ca:undefined, method, agent: false,
+      headers: { host: url.host, 'user-agent': userAgent, accept: '*/*' } }, res => {
       const chunks = []; let bytes = 0;
       res.on('data', chunk => {
         bytes += chunk.length;

@@ -10,6 +10,8 @@ import { readFileSync } from 'node:fs';
 import { brokerFetch, Budget, checkedURL, denyProxy } from './network.js';
 import { hash } from './engine.js';
 import {isOwnedFixture} from './controlled-fixture.js';
+import {brokerRPC,remoteFetch} from './socket-broker.js';
+import {assertIsolation} from '../scripts/isolation-proof.js';
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url),'utf8'));
 export const viewports = [{width:390,height:844},{width:320,height:800},{width:1440,height:900}];
 export const tools = Object.fromEntries(['playwright-core','@axe-core/playwright','lighthouse','puppeteer-core'].map(p=>[p,lock.packages[`node_modules/${p}`].version]));
@@ -18,10 +20,20 @@ const delay = ms => new Promise(resolve=>setTimeout(resolve,ms));
 /** Controlled fixtures only. No externally supplied target or private-network exception CLI. */
 export async function captureFixture(fixture, directory, options = {}) {
   if(!isOwnedFixture(fixture))throw new Error('OWNED_FIXTURE_REQUIRED');
+  return captureCore(fixture,directory,options);
+}
+export async function captureBroker(socketPath,directory,options={}){
+  const isolation=await assertIsolation();
+  const scope=await brokerRPC(socketPath,'/manifest');
+  return captureCore({origin:scope.origin},directory,{...options,paths:scope.pages.map(u=>new URL(u).pathname),navigationDelayMs:scope.navigationDelayMs,budget:scope.limits,remote:{scope,socketPath,isolation,fetch:remoteFetch(socketPath)}});
+}
+async function captureCore(fixture,directory,options){
+  const remote=options.remote;
   const paths = options.paths ?? ['/','/clean'];
   if (!paths.length || paths.length > 3 || paths.some(p=>!p.startsWith('/') || p.startsWith('//'))) throw new Error('PAGE_SCOPE');
   const approved = new Set(paths.map(p=>new URL(p,fixture.origin).href));
   const budget = new Budget(options.budget);
+  const fetch=remote?.fetch ?? ((url,method='GET')=>brokerFetch(url,{origin:fixture.origin,method,budget,fixture}));
   const proxy = await denyProxy();
   const profile = await mkdtemp(join(tmpdir(),'ozyra-browser-'));
   const blocked = [], pages = [], artifacts = {};
@@ -30,7 +42,7 @@ export async function captureFixture(fixture, directory, options = {}) {
   await mkdir(directory,{recursive:true,mode:0o700});
   try {
     const robotsURL=new URL('/robots.txt',fixture.origin).href;
-    const robotsResponse=await brokerFetch(robotsURL,{origin:fixture.origin,budget,fixture});
+    const robotsResponse=remote?{status:200,body:Buffer.from('')}:await fetch(robotsURL);
     if(robotsResponse.status!==200)throw new Error('ROBOTS_UNAVAILABLE');
     const robots=robotsParser(robotsURL,robotsResponse.body.toString());
     context = await chromium.launchPersistentContext(profile, {
@@ -49,11 +61,11 @@ export async function captureFixture(fixture, directory, options = {}) {
         checkedURL(request.url(),fixture.origin);
         if(robots.isAllowed(request.url(),'OzyraWebAudit')===false)throw new Error('ROBOTS_DISALLOW');
         if(request.isNavigationRequest() && request.frame()===request.frame().page().mainFrame() && !approved.has(request.url())) throw new Error('NAVIGATION_SCOPE');
-        const response=await brokerFetch(request.url(),{origin:fixture.origin,method:request.method(),budget,fixture});
+        const response=await fetch(request.url(),request.method(),request.isNavigationRequest()&&request.frame()===request.frame().page().mainFrame());
         await route.fulfill(response);
       } catch(e) {
         if(/ACCESS_STOP|CHALLENGE|BUDGET/.test(e.message))siteStop=e.message;
-        blocked.push({url:request.url(),method:request.method(),reason:e.message});
+        blocked.push({url:(()=>{try{const u=new URL(request.url());return u.origin+u.pathname;}catch{return '[invalid URL]';}})(),method:request.method(),reason:e.message});
         await route.abort('blockedbyclient').catch(()=>{});
       }
     });
@@ -72,6 +84,8 @@ export async function captureFixture(fixture, directory, options = {}) {
           await page.setViewportSize(viewport);
           await delay(options.navigationDelayMs ?? 5000);
           const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:budget.limits.requestMs});
+          result.httpStatus=response?.status()??null;
+          if(result.httpStatus>=400)result.status='partial';
           await page.evaluate(()=>Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1000))]));
           await page.waitForTimeout(150);
           const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
@@ -83,7 +97,7 @@ export async function captureFixture(fixture, directory, options = {}) {
           await save(axeFile,JSON.stringify(axe,null,2));
           const headers=await response.allHeaders();
           for(const name of ['content-security-policy','x-frame-options','strict-transport-security'])if(headers[name])result.headers[name]=headers[name];
-          result.views.push({...viewport,...measurements,axe:{violations:axe.violations.map(v=>({id:v.id,impact:v.impact,count:v.nodes.length,targets:v.nodes.map(n=>n.target)})),incomplete:axe.incomplete.length,passes:axe.passes.length,inapplicable:axe.inapplicable.length,artifact:axeFile},screenshot,fullPage,status:blocked.length>start?'partial':'complete',blocked:blocked.slice(start)});
+          result.views.push({...viewport,...measurements,axe:{violations:axe.violations.map(v=>({id:v.id,impact:v.impact,count:v.nodes.length,targets:v.nodes.map(n=>n.target)})),incomplete:axe.incomplete.length,passes:axe.passes.length,inapplicable:axe.inapplicable.length,artifact:axeFile},screenshot,fullPage,httpStatus:result.httpStatus,status:blocked.length>start||result.httpStatus>=400?'partial':'complete',blocked:blocked.slice(start)});
           if(blocked.length>start)result.status='partial';
         }catch(e){result.status='blocked';result.views.push({...viewport,status:'blocked',reason:e.message});break;}
       }
@@ -105,12 +119,13 @@ export async function captureFixture(fixture, directory, options = {}) {
           const nav=await navigation(pp,pages[0].url,{config:{extends:'lighthouse:default',settings:{onlyCategories:['performance'],maxWaitForLoad:10000,maxWaitForFcp:10000,throttlingMethod:'provided',disableStorageReset:true,screenEmulation:{disabled:true}}},flags:{logLevel:'error'}});
           await save('lighthouse-navigation.json',JSON.stringify(nav.lhr,null,2));
           const metrics=Object.fromEntries(['largest-contentful-paint','cumulative-layout-shift','total-blocking-time','first-contentful-paint','total-byte-weight'].map(id=>[id,{value:nav.lhr.audits[id]?.numericValue??null,unit:nav.lhr.audits[id]?.numericUnit??null}]));
-          lighthouse.performance={url:pages[0].url,viewport:viewports[0],status:nav.lhr.runtimeError?'unavailable':'measured',metrics,artifact:'lighthouse-navigation.json',limitations:'Single controlled local fixture run through a broker; not representative of public-site or field performance; TBT is not INP.'};
+          lighthouse.performance={url:pages[0].url,viewport:viewports[0],status:nav.lhr.runtimeError?'unavailable':'measured',metrics,artifact:'lighthouse-navigation.json',limitations:'Single brokered diagnostic run with provided throttling; transport changes timing. Not canonical visitor performance or field data; TBT is not INP.'};
           lighthouse.status=nav.lhr.runtimeError?'partial':'complete';
         }catch(e){lighthouse.performance={status:'unavailable',reason:e.message};}
       }catch(e){lighthouse={status:'unavailable',reason:e.message};}
     }
-    const report={schemaVersion:2,kind:'controlled-browser-measurement',capturedAt:new Date().toISOString(),tools:{...tools,chrome:browserVersion},config:{viewports:options.viewports??viewports,locale:'en-US',timezone:'UTC',region:'local runner; not Maldives field data',brokered:true,browserSandbox:true},pages,lighthouse,blocked,network:{requests:budget.requests,bytes:budget.bytes,limits:budget.limits},costs:{modelCalls:0,inputTokens:0,outputTokens:0},limitations:['Owned controlled fixtures only; no prospect assessed.','Accessibility requires manual review; no conformance or security grade.','Blocked resources can affect rendering; inspect coverage before making claims.']};
+    const network=remote?await brokerRPC(remote.socketPath,'/stats'):{requests:budget.requests,bytes:budget.bytes,limits:budget.limits};
+    const report={schemaVersion:2,kind:remote?(remote.scope.kind==='public-passive'?'public-browser-measurement':'controlled-external-browser-measurement'):'controlled-browser-measurement',capturedAt:new Date().toISOString(),tools:{...tools,chrome:browserVersion},config:{viewports:options.viewports??viewports,locale:'en-US',timezone:'UTC',region:'local runner; not Maldives field data',brokered:true,browserSandbox:true,isolation:remote?.isolation??'application-guards-only'},pages,lighthouse,blocked,network,costs:{modelCalls:0,inputTokens:0,outputTokens:0},limitations:[remote?.scope.kind==='public-passive'?'Read-only public-page capture; no authentication, form submission or outreach.':'Owned controlled fixtures only; no prospect assessed.','Accessibility requires manual review; no conformance or security grade.','Blocked resources can affect rendering; inspect coverage before making claims.']};
     await save('capture.json',JSON.stringify(report,null,2));
     return {report,artifacts};
   }finally{

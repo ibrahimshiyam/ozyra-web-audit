@@ -3,6 +3,7 @@ import {networkInterfaces} from 'node:os';
 import {readFile} from 'node:fs/promises';
 import net from 'node:net';
 import dgram from 'node:dgram';
+export async function assertIsolation(){
 assert.notEqual(process.getuid(),0,'Browser/controller must be non-root');
 assert.deepEqual(Object.keys(networkInterfaces()).filter(name=>name!=='lo'),[],'Only loopback is permitted');
 const status=await readFile('/proc/self/status','utf8');
@@ -20,4 +21,6 @@ await new Promise((resolve,reject)=>{
  const socket=dgram.createSocket('udp4');
  socket.send(Buffer.from('owned isolation probe'),53,'1.1.1.1',e=>{socket.close();if(e && ['ENETUNREACH','EHOSTUNREACH'].includes(e.code))resolve();else reject(new Error('UDP/DNS egress did not fail with unreachable'));});
 });
-console.log(JSON.stringify({isolation:'verified-network-none',uid:process.getuid(),interfaces:Object.keys(networkInterfaces()),capabilities:'none',noNewPrivileges:true,tcpIPv4:'unreachable',tcpIPv6:'unreachable',udpDNS:'unreachable'}));
+return {isolation:'verified-network-none',uid:process.getuid(),interfaces:Object.keys(networkInterfaces()),capabilities:'none',noNewPrivileges:true,tcpIPv4:'unreachable',tcpIPv6:'unreachable',udpDNS:'unreachable'};
+}
+if(process.argv[1] && new URL(import.meta.url).pathname===process.argv[1])console.log(JSON.stringify(await assertIsolation()));
