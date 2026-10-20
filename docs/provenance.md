@@ -2,8 +2,8 @@
 
 This project was authored independently for Ozyra Labs. Existing Ozyra projects were inspected to avoid duplicating their CRM, proposal, platform and social-workflow scope. No source, screenshots, templates, databases, credentials or Git history were copied from those projects.
 
-The only sample uses the reserved example.invalid hostname and manually authored synthetic observations. It contains no customer or institutional findings. The HTML is an evidence report, not a captured website screenshot.
+Version 0.1's committed example uses reserved example.invalid URLs and authored observation JSON. Version 0.2's controlled fixture is newly authored HTML served by the tool itself; actual screenshots and measurements contain no real institution or patient data. Generated captures remain outside the repository. The CLI has no public-target activation flag.
 
-Runtime dependencies: Node.js built-in modules only. No bundled browser, fonts, images, third-party source, package dependencies or model SDK. Source license: MIT. JavaScript ES modules are used for the dependency-free prototype to avoid adding a compiler; a later typed collector can be introduced without altering the JSON evidence interface.
+Project source license: MIT. JavaScript ES modules avoid a compiler/build step; the evidence interfaces are explicit JSON schemas by version. Third-party packages are pinned with integrity metadata, installed with lifecycle scripts disabled, and retain their own licenses. See THIRD_PARTY_NOTICES.md and docs/dependency-licenses.json.
 
-Before future publication: inspect tracked files and full history; scan secrets and private evidence; verify dependencies and notices; review exact release archive; keep all real evidence outside Git. The .gitignore is a secondary guard, not a data-loss prevention guarantee. No runtime public audit artifacts should be uploaded by CI.
+Before publication: inspect tracked files and full history; scan secrets and private evidence; review dependencies/notices and exact archive; keep real evidence outside Git. The ignore file is a secondary guard, not a data-loss prevention guarantee. CI operates only on owned fixtures and uploads no capture artifacts. Commits use the GitHub no-reply author address.

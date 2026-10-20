@@ -1,47 +1,68 @@
 # Ozyra Web Audit
 
-**Offline synthetic evidence prototype — live website capture is disabled.**
+**Real controlled-site browser capture, with zero LLM calls. Public-target execution remains disabled.**
 
-A small, deterministic-first starting point for an evidence-led website review workflow. It analyzes bounded synthetic observations, produces evidence-linked JSON and a static HTML report, and reuses verified cached artifacts. It makes **zero network requests and zero LLM calls**. It is not yet a website scanner, accessibility certification service, security assessment or sales agent.
+A deterministic website-review prototype using Playwright, axe-core and Lighthouse. Version 0.2 actually serves owned test pages, captures screenshots, runs browser accessibility checks and Lighthouse measurements, and generates evidence-linked HTML/JSON. It is not an unrestricted scanner, accessibility certification service, security assessment or sales agent.
 
-## Run
+## Run the real controlled demonstration
 
-Requires Node.js 22 or newer. No dependencies, installation, compilation, API keys, database or service are required.
+Node.js **22.19+** and installed Google Chrome are required. macOS defaults to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; elsewhere set `OZYRA_CHROME` to a supported installed Chrome executable. No compilation, API keys or database.
 
 ```sh
-node --test
-node src/cli.js demo --out /tmp/ozyra-audit-demo
-node src/cli.js analyze --input fixtures/demo.json --out /tmp/ozyra-audit-demo
+npm ci --ignore-scripts --no-fund
+node src/cli.js controlled --out /tmp/ozyra-browser-evidence
 ```
 
-Open `report.html` in the bundle directory printed by the command. Each bundle includes the supplied `source.json`, `report.json`, `report.html` and a checksum manifest. A second identical invocation validates and reuses the cache without recapturing anything. Output paths inside this repository are rejected, including symlink aliases. Directory permissions are private on supported systems.
+The command starts its own loopback fixture server, closes it afterward, and prints a bundle directory. Open `report.html` there. The bundle contains actual viewport/full-page PNGs at 390×844, 320×800 and 1440×900, raw axe JSON, Lighthouse snapshot/navigation results, `capture.json`, and checksum manifest. No prospect is contacted.
 
-`examples/synthetic/report.html` is a reviewed synthetic sample committed deliberately. The production CLI cannot write into the repository. Do not place real prospect data in fixtures or examples. Validation does not establish that arbitrary supplied text is free of personal information.
+Repeat the command to verify and reuse the cached bundle without starting a server or browser capture. Browser version, lockfile, collector and fixture sources contribute to cache identity. `--fresh` captures a new run. Cached evidence retains its original timestamp; it is not proof of current website state.
+
+```sh
+node scripts/verify-controlled.js /path/to/printed/bundle
+node --test test/audit.test.js test/network.test.js
+OZYRA_BROWSER_TESTS=1 node --test --test-concurrency=1 test/browser.test.js
+```
+
+Browser tests run serially with the Chromium sandbox enabled. If the execution environment cannot launch a sandboxed browser, report the failure; do not add `--no-sandbox` or disable security settings. CI uses its installed Chrome on macOS. No browser binaries are redistributed.
+
+## What the actual collector measures
+
+- Document/viewport width and horizontal overflow; contact-link presence, not successful contact.
+- Actual axe violations, incomplete, passed and inapplicable rules, with targets and raw evidence.
+- Screenshots plus browser, tool, viewport, locale, timezone and capture timestamp.
+- Lighthouse accessibility snapshot and a single performance navigation run with LCP, CLS, TBT, FCP and bytes. Snapshot and navigation each record their own URL and viewport.
+- Only selected response headers; no cookie values or credentials are saved.
+
+The intentionally defective owned page has missing image alt text, an unlabelled input and mobile overflow. The clean fixture provides a non-failure comparison. These are **real measurements of synthetic content**, not invented observation JSON or prospect findings.
+
+Performance is measured through a request broker on a local fixture with provided (unthrottled) conditions. One run is provisional and cannot represent public-site latency or field experience. TBT is not INP. Automated accessibility results are not WCAG conformance. No holistic quality/security score or sales outcome is asserted.
+
+## Request boundaries
+
+The browser has an ephemeral profile, sandbox, no downloads or service workers, and a deny-all fallback proxy. Approved requests are fulfilled by a Node broker that checks origin/method, validates all DNS answers, pins the connection IP, checks each new request, refuses out-of-scope redirects, and enforces time/request/byte limits. Only the internally created owned fixture receives a narrow loopback exception; callers cannot invent that capability. Credentials and cookies are not forwarded. Websockets and mutations are blocked. Robots disallow, 403/429 and recognized challenge/login responses stop or block capture honestly.
+
+These application controls are tested; they are **not an independently verified OS-wide egress boundary**. CAPTCHA/login detection is heuristic. Public-target execution remains fail-closed while that production boundary and arbitrary-site behavior are unresolved:
 
 ```sh
 node src/cli.js audit https://example.com
-# exits unsuccessfully with LIVE_DISABLED before any network activity
+# LIVE_DISABLED, before any target access
 ```
 
-## Implemented
+See [remaining activation gate](docs/live-capture-gate.md). No user-selectable private-target bypass exists.
 
-- Explicit synthetic schema, at most three same-origin `.invalid` pages, input size and viewport limits.
-- Horizontal-overflow checks from supplied dimensions; imported synthetic axe-style rule observations (axe itself is not run).
-- Context-aware framing-header observation: CSP `frame-ancestors` can replace X-Frame-Options.
-- Stable finding IDs, cross-page deduplication, source JSON pointers and checksums.
-- Explicit blocked/not-tested/unknown coverage. No composite or security score.
-- HTML escaping, restrictive report CSP, no remote scripts/assets, no form or sending capability.
-- Immutable output bundles, input/version-keyed cache and artifact-integrity validation.
-- Zero-model basic reports and explicit zero token/call accounting.
+## Lightweight offline mode
 
-## Not implemented
+The original dependency-free synthetic analyzer remains available, without browser/model calls:
 
-Live browser capture, screenshots, axe execution, Lighthouse performance execution/ingestion, DNS and subresource egress enforcement, robots parsing, manual-review persistence, proposal-system integration and optional LLM synthesis. Empty `labSamples` is reserved; non-empty values are rejected rather than presented as verified performance data. No LLM adapter or credentials are provisioned.
+```sh
+node src/cli.js demo --out /tmp/ozyra-synthetic-demo
+node src/cli.js analyze --input fixtures/demo.json --out /tmp/ozyra-synthetic-demo
+```
 
-These omissions are deliberate release boundaries. A syntactic URL check is **not** a network safety mechanism. All live execution remains disabled until the complete collector controls pass independent acceptance checks. See [live capture gate](docs/live-capture-gate.md).
+Its schemaVersion 1 output is labelled synthetic supplied observations. The real collector uses schemaVersion 2 and `kind: controlled-browser-measurement`. Do not confuse the two. `examples/synthetic/` is the old offline sample, not a screenshot.
 
-## Evidence and interpretation
+## Private outputs and public code
 
-Supplied synthetic observations are not findings about a real organization. Automated accessibility findings cannot establish WCAG conformance. A missing header does not demonstrate exploitability. Performance field data and visitor traffic are unknown. No claim is made that a fix will increase bookings, revenue or sales.
+Output paths inside this repository, including symlink aliases, are rejected. Public examples must be explicitly reviewed owned/synthetic content. Real prospect dossiers, screenshots, contacts and raw responses must remain outside Git; ignore rules alone do not sanitize data. This release has no LLM adapter, credentials, outreach, CRM or commercial commitments.
 
-See [methodology and funnel](docs/methodology.md), [source provenance](docs/provenance.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Intended use is private, human-reviewed evidence preparation; this repository contains no prospect list or outreach automation.
+[Methodology/funnel](docs/methodology.md) · [provenance](docs/provenance.md) · [dependency notices](THIRD_PARTY_NOTICES.md) · [license inventory](docs/dependency-licenses.json).

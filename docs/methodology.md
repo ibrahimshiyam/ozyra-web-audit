@@ -1,6 +1,6 @@
 # Methodology and private workflow
 
-Version 0.1.0 implements the offline evidence/report core only. The following describes the intended collector and business workflow, not completed prospect research.
+Version 0.2 implements real browser capture on internally owned fixtures, plus the original offline report core. Public-site activation and the business workflow below remain planned; no prospect research or outreach has been performed.
 
 ## Evidence contract
 

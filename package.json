@@ -1,1 +1,28 @@
-{"name":"ozyra-web-audit","version":"0.1.0","private":true,"type":"module","description":"Zero-LLM offline website audit evidence prototype; live capture deliberately disabled","license":"MIT","engines":{"node":">=22"},"scripts":{"test":"node --test","demo":"node src/cli.js demo"},"bin":{"ozyra-web-audit":"src/cli.js"}}
+{
+  "name": "ozyra-web-audit",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic controlled-site browser audit with screenshots, axe and Lighthouse; public targets disabled",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo": "node src/cli.js demo",
+    "test:browser": "OZYRA_BROWSER_TESTS=1 node --test --test-concurrency=1 test/browser.test.js",
+    "controlled": "node src/cli.js controlled"
+  },
+  "bin": {
+    "ozyra-web-audit": "src/cli.js"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "ipaddr.js": "2.5.0",
+    "lighthouse": "13.5.0",
+    "playwright-core": "1.64.1",
+    "puppeteer-core": "25.15.0",
+    "robots-parser": "3.0.1"
+  }
+}

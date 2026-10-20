@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {limits, publicUrl} from './policy.js';
 export const VERSION = '0.1.0';
-export const hash = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
+export const hash = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 function keys(object, allowed) {
   if (!object || typeof object !== 'object' || Array.isArray(object)) throw new Error('Expected object');
   for (const key of Object.keys(object)) if (!allowed.includes(key)) throw new Error(`Unsupported field: ${key}`);

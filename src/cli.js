@@ -8,6 +8,11 @@ import {requireLiveCapture,limits} from './policy.js';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 export async function run(args) {
  const [command,...rest]=args;
+ if(command==='controlled') {
+   if(rest[0]!=='--out' || !rest[1] || (rest.length>2 && (rest.length!==3 || rest[2]!=='--fresh'))) throw new Error('Usage: controlled --out /outside/repo/path [--fresh]');
+   const {controlled}=await import('./controlled.js');
+   console.log(JSON.stringify(await controlled(rest[1],{fresh:rest[2]==='--fresh'}))); return;
+ }
  if(command==='audit') requireLiveCapture();
  if(!['demo','analyze'].includes(command)) { console.log('Usage: node src/cli.js demo --out /outside/repo/path\n       node src/cli.js analyze --input fixture.json --out /outside/repo/path\nLive audit disabled. Synthetic evidence only. No LLM or network.'); return; }
  const options={};

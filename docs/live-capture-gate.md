@@ -1,21 +1,26 @@
-# Gate before live capture
+# Public-target activation gate
 
-Status: **not passed; collector not implemented; all live targets disabled**.
+Version 0.2: **controlled owned-site capture works; arbitrary public targets remain disabled**.
 
-The offline tests prove that this release refuses every live target. They do not prove that a future browser's network stack prevents SSRF, rebinding or mutations.
+## Implemented and tested
 
-Use proven Playwright/Chromium, axe-core and Lighthouse integrations before inventing browser or accessibility engines. Pin versions and review licenses before installation/distribution. Do not enable a collector by removing the current refusal alone.
+- Playwright with Chromium sandbox explicitly enabled, ephemeral profile and minimal environment; service workers/downloads disabled.
+- Deny-all browser fallback proxy, including loopback bypass suppression, with browser verification that an unhandled request cannot reach the fixture server.
+- Broker origin/method checks, all-answer public-IP validation, pinned connection addresses, per-request resolution, bounded DNS, TLS verification and no automatic redirects.
+- Reject metadata/private/reserved/mapped addresses and off-origin redirect/subresource requests. The only loopback capability comes from the internally owned server and is not a CLI switch.
+- Robots restrictions, 403/429 and recognized login/CAPTCHA bodies; mutations/websockets refused. Detection patterns are heuristic, not exhaustive.
+- Request, per-response, aggregate byte and time budgets. Site stops on access challenges or exhausted budgets; incomplete captures never claim success.
+- Real screenshots, axe findings and Lighthouse snapshot/navigation artifacts on controlled pages.
 
-Required before activation:
+## Still required before enabling public targets
 
-1. An explicit manifest of <=3 approved public same-origin pages, no automatic link expansion. Prevent credentials in URLs and non-HTTP(S) schemes.
-2. Enforce public IP address policy for every DNS resolution, connection, redirect and subresource, including IPv6, mapped addresses, metadata/link-local targets, rebinding and service workers. Prefer an independently tested restrictive egress proxy or equivalent connection-level enforcement; hostname parsing alone is insufficient.
-3. Sandboxed ephemeral browser with no login profile, credentials, downloads or local filesystem privileges. Restrict non-GET/HEAD requests and disclose rendering effects. No booking submissions or third-party booking interactions.
-4. Respect robots/site restrictions, identifying user agent and contact. Robots guidance is not access authorization. Stop on login, CAPTCHA, 403, 429 or complaint; honor Retry-After without circumventing restrictions.
-5. One active page per origin, >=5 seconds between top-level navigations, 45 seconds/page and 8 minutes/site. Add enforced request and byte caps before release; count subresources. Return partial/blocked coverage when budgets expire.
-6. Pin viewports 390x844, 320x800, 1440x900; record locale/timezone/region, browser/rules versions, consent/loading/font uncertainty and timestamps. Screenshot capture must actually occur before any artifact is called a screenshot.
-7. For shortlisted performance findings, three sequential isolated lab runs with raw metrics, median and range. Do not infer INP from TBT or Maldives field experience from origin-wide CrUX.
-8. Synthetic browser fixtures prove expected findings AND non-findings: alt/label failures, overflow, obstructed CTA, slow resource, mixed content, header equivalence, infinite loading, access denial and redirects. Include mutation interception and connection-level private-network tests. Never assert exact live performance scores.
-9. Human review of at least ten synthetic/owned cases before prospect use. Confirm scope and fresh evidence before any external claim.
+1. A validated OS/container-level egress boundary for the browser. The deny proxy, Chromium switches and interception are defense in depth, not an independently verified complete boundary for all browser channels/processes. This prototype does not configure a firewall, disable security controls or claim total network confinement.
+2. Approved same-origin URL manifest and real-site robots/terms workflow, with explicit redirect rules and conservative subresource handling. No indiscriminate crawl or public private-address override.
+3. Additional browser/worker/protocol cases and controlled DNS-to-connect integration tests in that runner. Current DNS pinning/rebinding tests use a mocked transport; browser tests exercise real HTTP on the owned loopback server, not public HTTPS rebinding.
+4. Measurement calibration for brokered transfer timing, optional cold-browser repeated Lighthouse runs, and manual review of real rendering effects. Broker fulfillment changes network timing; do not present it as normal visitor performance.
+5. Manual keyboard/focus, reflow, content and task checks. The tool cannot certify WCAG conformance or usability.
+6. Retention/access policy for real dossiers and a reviewed recipient/send process before any outreach. No prospect outreach functionality exists.
 
-No heavy local builds, remote deployments or browser downloads were needed for version 0.1.0. A future browser installation and runner choice are separate implementation prerequisites.
+Defaults: at most three pages, 390x844/320x800/1440x900, one page at a time, five-second navigation delay, 45-second request timeout, eight-minute overall browser deadline, 120 broker requests, 8 MiB per response and 32 MiB aggregate. Tests use shorter limits only against owned fixtures. Page subresources count toward limits.
+
+Smallest next step: choose an approved isolated runner with enforceable egress restrictions, validate its network boundary using controlled HTTP/HTTPS/DNS cases, then enable a single operator-approved public own-site smoke. No public service or VPS configuration was changed in this release.

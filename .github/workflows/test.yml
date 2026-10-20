@@ -1,13 +1,31 @@
-name: Offline tests
+name: Audit tests
 on: [push, pull_request]
 permissions:
   contents: read
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
-      - run: node --test
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-fund
+      - run: node --test test/audit.test.js test/network.test.js
+  controlled-browser:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-fund
+      - run: OZYRA_BROWSER_TESTS=1 node --test --test-concurrency=1 test/browser.test.js
+      - name: Real controlled capture, verification and cached replay
+        run: |
+          node src/cli.js controlled --out "$RUNNER_TEMP/ozyra" > "$RUNNER_TEMP/first.json"
+          BUNDLE=$(node -p "require(process.env.RUNNER_TEMP + '/first.json').bundle")
+          node scripts/verify-controlled.js "$BUNDLE"
+          node src/cli.js controlled --out "$RUNNER_TEMP/ozyra" > "$RUNNER_TEMP/cached.json"
+          node -e "if(!require(process.env.RUNNER_TEMP + '/cached.json').cached)process.exit(1)"
